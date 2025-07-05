@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:myapp/Screens/%20Scheduling/Scheduling%20Screen/scheduling_screen.dart';
 import 'package:myapp/Screens/Employees/Employees%20List%20Screen/employees_screen.dart';
 import 'package:myapp/Screens/HomePage/components/bottom_nav_bar.dart';
 import 'package:myapp/Screens/HomePage/components/side_bar.dart';
@@ -77,7 +78,7 @@ class _HomePageState extends State<HomePage> {
     // espelhando a lógica da Sidebar e BottomNavBar.
     final List<Widget> pages = [
       const PlaceholderScreen(title: 'Início'),
-      const PlaceholderScreen(title: 'Agendamentos'),
+      SchedulingScreen(),
     ];
 
     if (_currentUser?.tipoUsuario == 'admin') {
