@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "212781920285",
+    "project_id": "siga-200d2",
+    "storage_bucket": "siga-200d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:212781920285:android:946d2266543fc7d50c16f4",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0y16P0uGsEFAY-vPlHAeMNlZclGMxMII"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
