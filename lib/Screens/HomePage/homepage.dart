@@ -1,8 +1,12 @@
 // Arquivo: lib/Screens/HomePage/homepage.dart
 
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:myapp/Screens/Employees/Employees%20List%20Screen/employees_screen.dart';
 import 'package:myapp/Screens/HomePage/components/bottom_nav_bar.dart';
 import 'package:myapp/Screens/HomePage/components/side_bar.dart';
+import 'package:myapp/models/user_model.dart';
+import 'package:myapp/services/user_service.dart';
 
 // Classe de exemplo para representar as telas que você irá criar
 class PlaceholderScreen extends StatelessWidget {
@@ -25,13 +29,35 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final UserService _userService = UserService();
+  UserModel? _currentUser;
+  bool _isLoading = true;
   int _selectedIndex = 0;
 
-  static const List<Widget> _pages = <Widget>[
-    PlaceholderScreen(title: 'Início'),
-    PlaceholderScreen(title: 'Agendamentos'),
-    PlaceholderScreen(title: 'Perfil'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final firebaseUser = fb_auth.FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      final userModel = await _userService.getUser(firebaseUser.uid);
+      if (mounted) {
+        setState(() {
+          _currentUser = userModel;
+          _isLoading = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -41,34 +67,53 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // CORREÇÃO: Usando LayoutBuilder para detectar o tamanho da tela dinamicamente
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // CORREÇÃO: A lista de páginas agora é construída dinamicamente,
+    // espelhando a lógica da Sidebar e BottomNavBar.
+    final List<Widget> pages = [
+      const PlaceholderScreen(title: 'Início'),
+      const PlaceholderScreen(title: 'Agendamentos'),
+    ];
+
+    if (_currentUser?.tipoUsuario == 'admin') {
+      pages.add(const AdminEmployeesScreen());
+    }
+    
+    // A página de Perfil é sempre a última
+    pages.add(const PlaceholderScreen(title: 'Perfil'));
+
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Define um ponto de quebra. Se a largura for menor que 768, é mobile.
         final bool isMobile = constraints.maxWidth < 768;
 
         if (isMobile) {
+          // --- LAYOUT MOBILE ---
           return Scaffold(
             appBar: AppBar(
               title: const Text('SIGA'),
-              backgroundColor: Colors.teal,
+              backgroundColor: Colors.blue, // Cor atualizada
             ),
-            // O Drawer continua usando a Sidebar
             drawer: Sidebar(
               selectedIndex: _selectedIndex,
               onItemSelected: (index) {
                 _onItemTapped(index);
-                Navigator.pop(context); 
+                Navigator.pop(context);
               },
             ),
-            body: _pages[_selectedIndex],
-            // A BottomNavBar é usada no layout mobile
+            body: pages[_selectedIndex],
             bottomNavigationBar: BottomNavBar(
               selectedIndex: _selectedIndex,
               onItemSelected: _onItemTapped,
             ),
           );
         } else {
+          // --- LAYOUT DESKTOP / WEB ---
           return Scaffold(
             body: Row(
               children: [
@@ -76,9 +121,8 @@ class _HomePageState extends State<HomePage> {
                   selectedIndex: _selectedIndex,
                   onItemSelected: _onItemTapped,
                 ),
-                // O conteúdo principal ocupa o restante da tela
                 Expanded(
-                  child: _pages[_selectedIndex],
+                  child: pages[_selectedIndex],
                 ),
               ],
             ),

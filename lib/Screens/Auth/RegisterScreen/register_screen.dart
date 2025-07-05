@@ -244,7 +244,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8.0),
                             ),
-                            backgroundColor: Colors.teal,
+                            backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
                             textStyle: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold),

@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
-import 'package:myapp/Screens/Auth/LoginScreen/login_screen.dart';
+import 'package:myapp/Screens/Auth/LoginScreen/login_screen.dart'; // Ajuste o caminho se necessário
 import 'package:myapp/models/user_model.dart';      // Ajuste o caminho se necessário
 import 'package:myapp/services/user_service.dart';    // Ajuste o caminho se necessário
 
@@ -23,13 +23,6 @@ class Sidebar extends StatefulWidget {
 class _SidebarState extends State<Sidebar> {
   final UserService _userService = UserService();
   UserModel? _currentUser;
-
-  // Itens de navegação adaptados para o nosso projeto
-  static const List<Map<String, dynamic>> _navItems = [
-    {'icon': Icons.home_outlined, 'label': 'Início'},
-    {'icon': Icons.schedule_outlined, 'label': 'Agendamentos'},
-    {'icon': Icons.person_outline, 'label': 'Perfil'},
-  ];
 
   @override
   void initState() {
@@ -54,7 +47,6 @@ class _SidebarState extends State<Sidebar> {
   void _performLogout(BuildContext context) async {
     await fb_auth.FirebaseAuth.instance.signOut();
     if (mounted) {
-      // Leva o usuário de volta para a tela de login e remove todas as outras rotas
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
         (Route<dynamic> route) => false,
@@ -74,6 +66,24 @@ class _SidebarState extends State<Sidebar> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
+    
+    // CORREÇÃO: A lógica de construção da lista foi ajustada
+    // para garantir a ordem correta dos itens.
+    final List<Map<String, dynamic>> navItems = [
+      {'icon': Icons.home_outlined, 'label': 'Início'},
+      {'icon': Icons.schedule_outlined, 'label': 'Agendamentos'},
+    ];
+
+    if (_currentUser?.tipoUsuario == 'admin') {
+      navItems.add(
+        {'icon': Icons.admin_panel_settings_outlined, 'label': 'Funcionários'},
+      );
+    }
+    
+    // O item de Perfil é sempre o último a ser adicionado.
+    navItems.add(
+      {'icon': Icons.person_outline, 'label': 'Perfil'},
+    );
 
     final userName = _currentUser!.nomeCompleto;
     final userEmail = _currentUser!.email;
@@ -92,22 +102,22 @@ class _SidebarState extends State<Sidebar> {
               backgroundColor: cs.onPrimary,
               child: Text(
                 userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                style: tt.headlineMedium?.copyWith(color: Colors.teal), // Cor do texto do avatar
+                style: tt.headlineMedium?.copyWith(color: Colors.blue), // Cor atualizada
               ),
             ),
-            decoration: const BoxDecoration(color: Colors.teal), // Cor de fundo do header
+            decoration: const BoxDecoration(color: Colors.blue), // Cor atualizada
           ),
 
-          // Loop para criar os itens de navegação
-          for (int i = 0; i < _navItems.length; i++)
+          // Loop para criar os itens de navegação dinamicamente
+          for (int i = 0; i < navItems.length; i++)
             _buildNavItem(
               context: context,
-              icon: _navItems[i]['icon'],
-              title: _navItems[i]['label'],
+              icon: navItems[i]['icon'],
+              title: navItems[i]['label'],
               index: i,
             ),
 
-          const Spacer(), // Empurra o botão de sair para o final
+          const Spacer(),
 
           // Botão de Sair
           const Divider(thickness: 1, indent: 16, endIndent: 16),
@@ -149,8 +159,8 @@ class _SidebarState extends State<Sidebar> {
           ),
         ),
         selected: isSelected,
-        selectedTileColor: Colors.teal.withOpacity(0.1), // Cor de fundo do item selecionado
-        selectedColor: Colors.teal, // Cor do ícone e texto do item selecionado
+        selectedTileColor: Colors.blue.withOpacity(0.1), // Cor atualizada
+        selectedColor: Colors.blue, // Cor atualizada
         iconColor: cs.onSurfaceVariant,
         textColor: cs.onSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
