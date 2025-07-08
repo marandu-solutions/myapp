@@ -1,7 +1,8 @@
 // Arquivo: lib/services/court_service.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:myapp/models/court_model.dart';
+import '../models/court_model.dart';
+
 
 class CourtService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -17,8 +18,7 @@ class CourtService {
     }
   }
 
-  // --- Read ---
-  // Busca todas as quadras cadastradas no sistema
+  // --- Read (Todos) ---
   Future<List<CourtModel>> getAllCourts() async {
     try {
       final querySnapshot = await _firestore.collection(_collectionPath).get();
@@ -30,6 +30,27 @@ class CourtService {
           .toList();
     } catch (e) {
       print('Erro ao buscar quadras: $e');
+      rethrow;
+    }
+  }
+
+  // --- Read (Por Ginásio) - NOVO MÉTODO ---
+  // Busca todas as quadras que pertencem a um ginásio específico.
+  Future<List<CourtModel>> getCourtsForGym(String gymId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collectionPath)
+          .where('gymId', isEqualTo: gymId)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        return [];
+      }
+      return querySnapshot.docs
+          .map((doc) => CourtModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+          .toList();
+    } catch (e) {
+      print('Erro ao buscar quadras para o ginásio $gymId: $e');
       rethrow;
     }
   }

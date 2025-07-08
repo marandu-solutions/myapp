@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:myapp/models/gym_model.dart';
 
 import '../../../services/gyms_service.dart';
+import '../ManageGym/manage_gym.dart';
 import 'components/gym_form.dart';
+
 
 class AdminGymsScreen extends StatefulWidget {
   const AdminGymsScreen({Key? key}) : super(key: key);
@@ -91,19 +93,23 @@ class GymCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
-      clipBehavior: Clip.antiAlias, // Garante que a imagem respeite as bordas
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       elevation: 3.0,
       shadowColor: Colors.black.withOpacity(0.2),
       child: InkWell(
         onTap: () {
-          // TODO: Navegar para a tela de gerenciamento detalhado do ginásio
-          // Navigator.push(context, MaterialPageRoute(builder: (_) => ManageGymScreen(gym: gym)));
+          // CORREÇÃO: Navegação implementada para a tela de gerenciamento
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ManageGymScreen(gym: gym),
+            ),
+          );
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Imagem do Ginásio
             SizedBox(
               height: 150,
               width: double.infinity,
