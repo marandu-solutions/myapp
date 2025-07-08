@@ -12,6 +12,7 @@ import 'package:myapp/services/user_service.dart';
 import '../ Scheduling/Scheduling Screen/scheduling_screen.dart';
 import '../Employees/Employees List Screen/employees_screen.dart';
 import '../Gym/AdminGyms/admin_gyms.dart';
+import '../InitialPage/initial_page.dart';
 
 // Telas das Seções
 
@@ -24,7 +25,7 @@ class NavItem {
   NavItem({required this.title, required this.icon, required this.screen});
 }
 
-// --- TELA DE PLACEHOLDER ---
+// --- TELA DE PLACEHOLDER (Ainda útil para telas não implementadas) ---
 class PlaceholderScreen extends StatelessWidget {
   final String title;
   const PlaceholderScreen({Key? key, required this.title}) : super(key: key);
@@ -77,10 +78,11 @@ class _HomePageState extends State<HomePage> {
 
   void _buildNavigationItems() {
     final List<NavItem> items = [
+      // CORREÇÃO: A tela de Início agora é o Dashboard
       NavItem(
-        title: 'Início',
-        icon: Icons.home_outlined,
-        screen: const PlaceholderScreen(title: 'Início'),
+        title: 'Dashboard', // Título atualizado
+        icon: Icons.dashboard_outlined, // Ícone atualizado
+        screen: const DashboardScreen(), // Tela atualizada
       ),
       NavItem(
         title: 'Agendamentos',
@@ -89,7 +91,6 @@ class _HomePageState extends State<HomePage> {
       ),
     ];
 
-    // CORREÇÃO: Adiciona ambas as telas de admin se o usuário for do tipo 'admin'
     if (_currentUser?.tipoUsuario == 'admin') {
       items.add(
         NavItem(
