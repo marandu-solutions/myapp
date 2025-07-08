@@ -1,3 +1,5 @@
+// Arquivo: lib/models/gym_model.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GymModel {
@@ -5,6 +7,8 @@ class GymModel {
   final String nome;
   final String endereco;
   final String fotoUrl;
+  final String horarioAbertura; // Ex: "08:00"
+  final String horarioFechamento; // Ex: "22:00"
   final bool ativo;
 
   GymModel({
@@ -12,6 +16,8 @@ class GymModel {
     required this.nome,
     required this.endereco,
     required this.fotoUrl,
+    required this.horarioAbertura,
+    required this.horarioFechamento,
     required this.ativo,
   });
 
@@ -23,6 +29,8 @@ class GymModel {
       nome: data?['nome'] ?? '',
       endereco: data?['endereco'] ?? '',
       fotoUrl: data?['fotoUrl'] ?? '',
+      horarioAbertura: data?['horarioAbertura'] ?? '08:00',
+      horarioFechamento: data?['horarioFechamento'] ?? '22:00',
       ativo: data?['ativo'] ?? true,
     );
   }
@@ -33,6 +41,8 @@ class GymModel {
       'nome': nome,
       'endereco': endereco,
       'fotoUrl': fotoUrl,
+      'horarioAbertura': horarioAbertura,
+      'horarioFechamento': horarioFechamento,
       'ativo': ativo,
     };
   }

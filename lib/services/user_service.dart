@@ -4,7 +4,7 @@ import 'package:myapp/models/user_model.dart';
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collectionPath = 'usuarios';
+  final String _collectionPath = 'users';
 
   // C - Create (Criar)
   // Cria um novo documento de usuário no Firestore.
