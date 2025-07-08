@@ -8,6 +8,7 @@ import '../../../models/reservation_model.dart';
 import '../../../services/court_service.dart';
 import '../../../services/gyms_service.dart';
 import '../../../services/reservataion_service.dart';
+import '../../Reservation/ReservationScreen/reservation_screen.dart';
 import 'components/day_schedule_view.dart';
 
 class SchedulingScreen extends StatefulWidget {
@@ -22,14 +23,10 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
   final CourtService _courtService = CourtService();
   final ReservationService _reservationService = ReservationService();
 
-  // Futuros para carregar os dados dos dropdowns
   late Future<List<GymModel>> _gymsFuture;
   Future<List<CourtModel>>? _courtsFuture;
-
-  // Futuro para carregar os agendamentos da agenda
   Future<List<ReservationModel>>? _reservationsFuture;
 
-  // Itens selecionados
   GymModel? _selectedGym;
   CourtModel? _selectedCourt;
   DateTime _selectedDate = DateTime.now();
@@ -45,32 +42,27 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
     _gymsFuture = _gymService.getAllGyms();
     _gymsFuture.then((gyms) {
       if (gyms.isNotEmpty && mounted) {
-        // Seleciona o primeiro ginásio da lista e busca suas quadras
         _onGymSelected(gyms.first);
       }
     });
   }
 
-  // Chamado quando um ginásio é selecionado
   void _onGymSelected(GymModel gym) {
     setState(() {
       _selectedGym = gym;
-      _selectedCourt = null; // Reseta a quadra selecionada
-      _reservationsFuture = null; // Limpa os agendamentos antigos
-      // Busca as quadras para o novo ginásio selecionado
+      _selectedCourt = null;
+      _reservationsFuture = null;
       _courtsFuture = _courtService.getCourtsForGym(gym.id);
     });
   }
 
-  // Chamado quando uma quadra é selecionada
   void _onCourtSelected(CourtModel court) {
     setState(() {
       _selectedCourt = court;
-      _fetchReservations(); // Busca os agendamentos para a nova quadra
+      _fetchReservations();
     });
   }
 
-  // Busca as reservas para a quadra e data atualmente selecionadas
   void _fetchReservations() {
     if (_selectedCourt == null) return;
     setState(() {
@@ -97,6 +89,19 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
     }
   }
 
+  // Navega para a tela de criação e atualiza a lista ao retornar
+  void _navigateAndCreateReservation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateReservationScreen(),
+      ),
+    ).then((_) {
+      // Atualiza a lista de agendamentos quando a tela de criação é fechada
+      _fetchReservations();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,17 +116,15 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                // --- SELETORES DE GINÁSIO E QUADRA ---
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Dropdown de Ginásios
                     Expanded(
                       child: FutureBuilder<List<GymModel>>(
                         future: _gymsFuture,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Text('A carregar ginásios...');
+                            return const Text('Carregando ginásios...');
                           }
                           if (!snapshot.hasData || snapshot.data!.isEmpty) {
                             return const Text('Nenhum ginásio encontrado.');
@@ -138,7 +141,6 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // Dropdown de Quadras
                     Expanded(
                       child: FutureBuilder<List<CourtModel>>(
                         future: _courtsFuture,
@@ -165,7 +167,6 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Seletor de Data
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -178,7 +179,6 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
             ),
           ),
           const Divider(height: 1),
-          // Visualização da Agenda
           Expanded(
             child: FutureBuilder<List<ReservationModel>>(
               future: _reservationsFuture,
@@ -193,6 +193,13 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
             ),
           ),
         ],
+      ),
+      // --- BOTÃO FAB ADICIONADO ---
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navigateAndCreateReservation,
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Novo Agendamento',
       ),
     );
   }
