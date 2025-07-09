@@ -4,20 +4,20 @@ class UserModel {
   final String uid;
   final String nomeCompleto;
   final String email;
-  final String cpf; // <-- Adicionado aqui
+  final String cpf;
   final String telefone;
-  final String tipoUsuario; // 'admin', 'porteiro', 'cliente'
-  final String? ginasioId; // Nulo para admin e cliente
+  final String tipoUsuario; // 'admin', 'employee', 'client'
+  final String fotoUrl; // <-- ADICIONADO
   final bool ativo;
 
   UserModel({
     required this.uid,
     required this.nomeCompleto,
     required this.email,
-    required this.cpf, // <-- Adicionado aqui
+    required this.cpf,
     required this.telefone,
     required this.tipoUsuario,
-    this.ginasioId,
+    required this.fotoUrl, // <-- ADICIONADO
     required this.ativo,
   });
 
@@ -28,10 +28,10 @@ class UserModel {
       uid: snapshot.id,
       nomeCompleto: data?['nomeCompleto'] ?? '',
       email: data?['email'] ?? '',
-      cpf: data?['cpf'] ?? '', // <-- Adicionado aqui
+      cpf: data?['cpf'] ?? '',
       telefone: data?['telefone'] ?? '',
-      tipoUsuario: data?['tipoUsuario'] ?? 'cliente',
-      ginasioId: data?['ginasioId'],
+      tipoUsuario: data?['tipoUsuario'] ?? 'client',
+      fotoUrl: data?['fotoUrl'] ?? '', // <-- ADICIONADO
       ativo: data?['ativo'] ?? true,
     );
   }
@@ -41,10 +41,10 @@ class UserModel {
     return {
       'nomeCompleto': nomeCompleto,
       'email': email,
-      'cpf': cpf, // <-- Adicionado aqui
+      'cpf': cpf,
       'telefone': telefone,
       'tipoUsuario': tipoUsuario,
-      'ginasioId': ginasioId,
+      'fotoUrl': fotoUrl, // <-- ADICIONADO
       'ativo': ativo,
     };
   }

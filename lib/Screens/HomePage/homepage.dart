@@ -13,6 +13,7 @@ import '../ Scheduling/Scheduling Screen/scheduling_screen.dart';
 import '../Employees/Employees List Screen/employees_screen.dart';
 import '../Gym/AdminGyms/admin_gyms.dart';
 import '../InitialPage/initial_page.dart';
+import '../ProfileScreen/profile_screen.dart';
 
 // Telas das Seções
 
@@ -112,7 +113,7 @@ class _HomePageState extends State<HomePage> {
       NavItem(
         title: 'Perfil',
         icon: Icons.person_outline,
-        screen: const PlaceholderScreen(title: 'Meu Perfil'),
+        screen: const ProfileScreen(),
       ),
     );
 
@@ -157,7 +158,7 @@ class _HomePageState extends State<HomePage> {
         if (isMobile) {
           return Scaffold(
             appBar: AppBar(
-              title: Text(_navItems[_selectedIndex].title),
+              title: Text("Sistema de Gestão de Agendamentos"),
               backgroundColor: Colors.blue,
             ),
             drawer: Sidebar(

@@ -1,3 +1,5 @@
+// Arquivo: lib/models/employee_model.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmployeeModel {
@@ -19,7 +21,6 @@ class EmployeeModel {
     required this.ativo,
   });
 
-  // Método para converter os dados do Firestore (Map) para um objeto EmployeeModel
   factory EmployeeModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data();
     return EmployeeModel(
@@ -33,7 +34,6 @@ class EmployeeModel {
     );
   }
 
-  // Método para converter um objeto EmployeeModel para um Map para salvar no Firestore
   Map<String, dynamic> toFirestore() {
     return {
       'nomeCompleto': nomeCompleto,
@@ -44,4 +44,18 @@ class EmployeeModel {
       'ativo': ativo,
     };
   }
+
+  // --- CORREÇÃO: Lógica de Comparação ---
+  // Sobrescreve o operador '==' para comparar funcionários pelo UID.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is EmployeeModel &&
+        other.uid == uid;
+  }
+
+  // Sobrescreve o hashCode para consistência com o operador '=='.
+  @override
+  int get hashCode => uid.hashCode;
 }

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../../../models/court_model.dart';
 import '../../../models/gym_model.dart';
 import '../../../models/reservation_model.dart';
@@ -9,7 +10,7 @@ import '../../../services/court_service.dart';
 import '../../../services/gyms_service.dart';
 import '../../../services/reservataion_service.dart';
 import '../../Reservation/ReservationScreen/reservation_screen.dart';
-import 'components/day_schedule_view.dart';
+import 'components/week_schedule_view.dart';
 
 class SchedulingScreen extends StatefulWidget {
   const SchedulingScreen({Key? key}) : super(key: key);
@@ -29,7 +30,7 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
 
   GymModel? _selectedGym;
   CourtModel? _selectedCourt;
-  DateTime _selectedDate = DateTime.now();
+  DateTime _focusedDate = DateTime.now();
 
   @override
   void initState() {
@@ -59,37 +60,51 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
   void _onCourtSelected(CourtModel court) {
     setState(() {
       _selectedCourt = court;
-      _fetchReservations();
+      _fetchReservationsForWeek();
     });
   }
 
-  void _fetchReservations() {
+  void _fetchReservationsForWeek() {
     if (_selectedCourt == null) return;
+    final startOfWeek = _getStartOfWeek(_focusedDate);
     setState(() {
-      _reservationsFuture = _reservationService.getReservationsForCourtByDate(
+      _reservationsFuture = _reservationService.getReservationsForWeek(
         _selectedCourt!.id,
-        _selectedDate,
+        startOfWeek,
       );
     });
   }
 
+  DateTime _getStartOfWeek(DateTime date) {
+    return date.subtract(Duration(days: date.weekday - 1));
+  }
+
+  String _getWeekRangeTitle() {
+    final startOfWeek = _getStartOfWeek(_focusedDate);
+    final endOfWeek = startOfWeek.add(const Duration(days: 6));
+    if (startOfWeek.month == endOfWeek.month) {
+      return '${startOfWeek.day} - ${endOfWeek.day} de ${DateFormat.MMMM('pt_BR').format(endOfWeek)}';
+    }
+    return '${DateFormat('d MMM', 'pt_BR').format(startOfWeek)} - ${DateFormat('d MMM', 'pt_BR').format(endOfWeek)}';
+  }
+
+  // CORREÇÃO: Método adicionado de volta à classe
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _focusedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
       locale: const Locale('pt', 'BR'),
     );
-    if (picked != null && picked != _selectedDate) {
+    if (picked != null && picked != _focusedDate) {
       setState(() {
-        _selectedDate = picked;
-        _fetchReservations();
+        _focusedDate = picked;
+        _fetchReservationsForWeek(); // Busca reservas para a nova data
       });
     }
   }
 
-  // Navega para a tela de criação e atualiza a lista ao retornar
   void _navigateAndCreateReservation() {
     Navigator.push(
       context,
@@ -97,8 +112,7 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
         builder: (context) => const CreateReservationScreen(),
       ),
     ).then((_) {
-      // Atualiza a lista de agendamentos quando a tela de criação é fechada
-      _fetchReservations();
+      _fetchReservationsForWeek();
     });
   }
 
@@ -106,7 +120,7 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agenda'),
+        title: const Text('Agenda Semanal'),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 1,
       ),
@@ -147,7 +161,7 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
                         builder: (context, snapshot) {
                           if (_selectedGym == null) return const SizedBox.shrink();
                           if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: LinearProgressIndicator());
+                            return const LinearProgressIndicator();
                           }
                           if (!snapshot.hasData || snapshot.data!.isEmpty) {
                             return const Text('Nenhuma quadra.');
@@ -170,9 +184,9 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => setState(() { _selectedDate = _selectedDate.subtract(const Duration(days: 1)); _fetchReservations(); })),
-                    InkWell(onTap: () => _selectDate(context), child: Text(DateFormat("dd 'de' MMMM 'de' yyyy", 'pt_BR').format(_selectedDate), style: Theme.of(context).textTheme.titleLarge)),
-                    IconButton(icon: const Icon(Icons.chevron_right), onPressed: () => setState(() { _selectedDate = _selectedDate.add(const Duration(days: 1)); _fetchReservations(); })),
+                    IconButton(icon: const Icon(Icons.chevron_left), onPressed: () { setState(() { _focusedDate = _focusedDate.subtract(const Duration(days: 7)); _fetchReservationsForWeek(); }); }),
+                    InkWell(onTap: () => _selectDate(context), child: Text(_getWeekRangeTitle(), style: Theme.of(context).textTheme.titleLarge)),
+                    IconButton(icon: const Icon(Icons.chevron_right), onPressed: () { setState(() { _focusedDate = _focusedDate.add(const Duration(days: 7)); _fetchReservationsForWeek(); }); }),
                   ],
                 ),
               ],
@@ -183,18 +197,27 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
             child: FutureBuilder<List<ReservationModel>>(
               future: _reservationsFuture,
               builder: (context, snapshot) {
-                if (_selectedCourt == null) return const Center(child: Text('Selecione uma quadra para ver a agenda.'));
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                if (snapshot.hasError) return Center(child: Text('Erro: ${snapshot.error}'));
+                if (_selectedCourt == null) {
+                  return const Center(child: Text('Selecione uma quadra para ver a agenda.'));
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Erro: ${snapshot.error}'));
+                }
 
                 final reservations = snapshot.data ?? [];
-                return DayScheduleView(reservations: reservations, date: _selectedDate);
+                return WeekScheduleView(
+                  reservations: reservations,
+                  weekStartDate: _getStartOfWeek(_focusedDate),
+                  onActionCompleted: _fetchReservationsForWeek,
+                );
               },
             ),
           ),
         ],
       ),
-      // --- BOTÃO FAB ADICIONADO ---
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateAndCreateReservation,
         backgroundColor: Colors.blue,

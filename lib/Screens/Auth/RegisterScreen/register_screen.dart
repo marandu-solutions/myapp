@@ -44,12 +44,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             nomeCompleto: _nameController.text.trim(),
             email: _emailController.text.trim(),
             cpf: _cpfController.text.trim(),
-            telefone: '',
-            tipoUsuario: 'cliente',
-            ginasioId: null,
+            telefone: '', // Campo vazio, pois não é solicitado no cadastro
+            tipoUsuario: 'client', // Padrão para novos usuários
+            fotoUrl: '', // Novo usuário começa sem foto
             ativo: true,
           );
 
+          // CORREÇÃO: Passando os dois argumentos necessários para o método.
           await _userService.createUser(newUser, user.uid);
 
           if (mounted) {
@@ -101,7 +102,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        // Adiciona um botão de voltar e remove a sombra
         backgroundColor: Colors.grey[200],
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.blueGrey[800]),
@@ -237,20 +237,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _isLoading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
-                          onPressed: _registerUser,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 50, vertical: 15),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            textStyle: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          child: const Text('Cadastrar'),
-                        ),
+                    onPressed: _registerUser,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 50, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      textStyle: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('Cadastrar'),
+                  ),
                 ],
               ),
             ),

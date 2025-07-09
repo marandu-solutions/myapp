@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:myapp/models/gym_model.dart';
+import '../GymEmplyeeScreen/gym_employee.dart';
 import 'components/gym_court_tab.dart';
-import 'components/gym_info_tab.dart'; // Aba de informações
+import 'components/gym_info_tab.dart';
 
 class ManageGymScreen extends StatelessWidget {
   final GymModel gym;
@@ -35,9 +36,9 @@ class ManageGymScreen extends StatelessWidget {
           children: [
             // Conteúdo de cada aba
             GymInfoTab(gym: gym),
-            // CORREÇÃO: Substituído o placeholder pela aba funcional
             GymCourtsTab(gym: gym),
-            const Center(child: Text('Gerenciamento de Funcionários (a ser implementado)')),
+            // CORREÇÃO: Substituído o placeholder pela aba funcional
+            GymEmployeesTab(gym: gym),
           ],
         ),
       ),

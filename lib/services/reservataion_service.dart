@@ -1,17 +1,16 @@
 // Arquivo: lib/services/reservation_service.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:myapp/models/reservation_model.dart';
+
+import '../models/reservation_model.dart';
 
 class ReservationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collectionPath = 'reservations';
 
   // --- Create ---
-  // Adiciona uma nova reserva no Firestore.
   Future<void> createReservation(ReservationModel reservation) async {
     try {
-      // O Firestore gerará um ID automaticamente se não especificarmos um .doc()
       await _firestore.collection(_collectionPath).add(reservation.toFirestore());
     } catch (e) {
       print('Erro ao criar reserva: $e');
@@ -19,19 +18,19 @@ class ReservationService {
     }
   }
 
-  // --- Read ---
-  // Busca todas as reservas para uma quadra específica em um determinado dia.
-  Future<List<ReservationModel>> getReservationsForCourtByDate(String courtId, DateTime date) async {
+  // --- Read (por Semana) - NOVO MÉTODO ---
+  // Busca todas as reservas para uma quadra específica durante uma semana inteira.
+  Future<List<ReservationModel>> getReservationsForWeek(String courtId, DateTime weekStartDate) async {
     try {
-      // Define o início e o fim do dia para a consulta
-      final DateTime startOfDay = DateTime(date.year, date.month, date.day);
-      final DateTime endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+      // Define o início e o fim da semana para a consulta
+      final DateTime startOfWeek = DateTime(weekStartDate.year, weekStartDate.month, weekStartDate.day);
+      final DateTime endOfWeek = startOfWeek.add(const Duration(days: 7));
 
       final querySnapshot = await _firestore
           .collection(_collectionPath)
           .where('courtId', isEqualTo: courtId)
-          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfWeek))
+          .where('startTime', isLessThan: Timestamp.fromDate(endOfWeek))
           .get();
 
       if (querySnapshot.docs.isEmpty) {
@@ -42,18 +41,15 @@ class ReservationService {
           .map((doc) => ReservationModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
           .toList();
     } catch (e) {
-      print('Erro ao buscar reservas: $e');
+      print('Erro ao buscar reservas da semana: $e');
       rethrow;
     }
   }
-  
+
   // --- Update ---
-  // Atualiza o status de uma reserva (ex: de 'pendente' para 'confirmada').
   Future<void> updateReservationStatus(String reservationId, String newStatus) async {
     try {
-      await _firestore.collection(_collectionPath).doc(reservationId).update({
-        'status': newStatus,
-      });
+      await _firestore.collection(_collectionPath).doc(reservationId).update({'status': newStatus});
     } catch (e) {
       print('Erro ao atualizar status da reserva: $e');
       rethrow;
@@ -61,7 +57,6 @@ class ReservationService {
   }
 
   // --- Delete ---
-  // Cancela (deleta) uma reserva do Firestore.
   Future<void> deleteReservation(String reservationId) async {
     try {
       await _firestore.collection(_collectionPath).doc(reservationId).delete();
