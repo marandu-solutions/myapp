@@ -4,12 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmployeeModel {
   final String uid;
-  final String nomeCompleto;
+  late final String nomeCompleto;
   final String email;
-  final String cpf;
-  final String telefone;
-  final String fotoUrl;
-  final bool ativo;
+  late final String cpf;
+  late final String telefone;
+  late final String fotoUrl;
+  late final bool ativo;
 
   EmployeeModel({
     required this.uid,
