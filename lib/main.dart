@@ -1,5 +1,8 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'; // Importe este pacote
 import 'package:myapp/Screens/Auth/LoginScreen/login_screen.dart';
 import 'firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -7,8 +10,8 @@ import 'package:intl/date_symbol_data_local.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize date formatting for pt_BR locale
-  await initializeDateFormatting('pt_BR', null); 
+  // Esta linha é essencial e já está correta!
+  await initializeDateFormatting('pt_BR', null);
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -28,7 +31,17 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // A tela inicial agora é a LoginScreen
+      // --- ADICIONE ESTAS LINHAS PARA A LOCALIZAÇÃO ---
+      locale: const Locale('pt', 'BR'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+      ],
+      // -------------------------------------------------
       home: const LoginScreen(),
     );
   }
