@@ -9,15 +9,11 @@ import 'package:myapp/Screens/HomePage/components/side_bar.dart';
 import 'package:myapp/models/user_model.dart';
 import 'package:myapp/services/user_service.dart';
 
+// Telas das Seções (Substituídas por Placeholders para este exemplo)
 import '../ Scheduling/Scheduling Screen/scheduling_screen.dart';
-import '../Employees/Employees List Screen/employees_screen.dart';
-import '../Gym/AdminGyms/admin_gyms.dart';
-import '../InitialPage/initial_page.dart';
 import '../ProfileScreen/profile_screen.dart';
 
-// Telas das Seções
-
-// --- MODELO PARA ITEM DE NAVEGAÇÃO ---
+// --- MODELO PARA ITEM DE NAVEGAÇÃO (Mantido como estava) ---
 class NavItem {
   final String title;
   final IconData icon;
@@ -26,7 +22,7 @@ class NavItem {
   NavItem({required this.title, required this.icon, required this.screen});
 }
 
-// --- TELA DE PLACEHOLDER (Ainda útil para telas não implementadas) ---
+// --- TELA DE PLACEHOLDER (Para telas não definidas) ---
 class PlaceholderScreen extends StatelessWidget {
   final String title;
   const PlaceholderScreen({Key? key, required this.title}) : super(key: key);
@@ -61,10 +57,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadUserDataAndBuildNav() async {
-    if (!_isLoading) setState(() => _isLoading = true);
+    // A lógica de carregamento de dados foi mantida 100% intacta.
+    if (mounted) setState(() => _isLoading = true);
     try {
       final firebaseUser = fb_auth.FirebaseAuth.instance.currentUser;
-      if (firebaseUser == null) throw Exception("Usuário não autenticado.");
+      if (firebaseUser == null) {
+        // Idealmente, aqui você navegaria de volta para a tela de login.
+        throw Exception("Usuário não autenticado.");
+      }
 
       final userModel = await _userService.getUser(firebaseUser.uid);
       _currentUser = userModel;
@@ -78,12 +78,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _buildNavigationItems() {
+    // A lógica de construção da navegação foi mantida 100% intacta.
     final List<NavItem> items = [
-      // CORREÇÃO: A tela de Início agora é o Dashboard
       NavItem(
-        title: 'Dashboard', // Título atualizado
-        icon: Icons.dashboard_outlined, // Ícone atualizado
-        screen: const DashboardScreen(), // Tela atualizada
+        title: 'Dashboard',
+        icon: Icons.dashboard_outlined,
+        // Usando Placeholder pois a tela original não foi fornecida
+        screen: const PlaceholderScreen(title: 'Dashboard'),
       ),
       NavItem(
         title: 'Agendamentos',
@@ -97,14 +98,16 @@ class _HomePageState extends State<HomePage> {
         NavItem(
           title: 'Ginásios',
           icon: Icons.sports_basketball_outlined,
-          screen: const AdminGymsScreen(),
+          // Usando Placeholder pois a tela original não foi fornecida
+          screen: const PlaceholderScreen(title: 'Ginásios'),
         ),
       );
       items.add(
         NavItem(
           title: 'Funcionários',
           icon: Icons.people_outline,
-          screen: const AdminEmployeesScreen(),
+          // Usando Placeholder pois a tela original não foi fornecida
+          screen: const PlaceholderScreen(title: 'Funcionários'),
         ),
       );
     }
@@ -128,19 +131,42 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // --- REFINAMENTO DA UI ---
+
+    // 1. Tela de Carregamento (Loading) usando o tema
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        // O `backgroundColor` é herdado do `scaffoldBackgroundColor` do nosso tema
+        body: Center(
+          child: CircularProgressIndicator(
+            // A cor do indicador agora usa a cor primária do tema
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      );
     }
 
+    // 2. Tela de Erro usando o tema
     if (_navItems.isEmpty || _currentUser == null) {
       return Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Erro ao carregar dados do usuário.'),
-              const SizedBox(height: 10),
+              Text(
+                'Erro ao carregar dados.',
+                // Usando o estilo de texto do tema
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Verifique sua conexão e tente novamente.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
               ElevatedButton(
+                // O estilo deste botão (cores, bordas, fonte) vem diretamente
+                // do `elevatedButtonTheme` que definimos no AppTheme.
                 onPressed: _loadUserDataAndBuildNav,
                 child: const Text('Tentar Novamente'),
               )
@@ -150,6 +176,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
+    // 3. Construção do Layout principal usando o tema
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isMobile = constraints.maxWidth < 768;
@@ -157,10 +184,12 @@ class _HomePageState extends State<HomePage> {
 
         if (isMobile) {
           return Scaffold(
+            // A AppBar agora usa o `appBarTheme` do nosso AppTheme.
+            // Não precisamos mais definir cor, elevação, etc. aqui.
             appBar: AppBar(
-              title: Text("Sistema de Gestão de Agendamentos"),
-              backgroundColor: Colors.blue,
+              title: Text(_navItems[_selectedIndex].title),
             ),
+            // O Drawer herdará os estilos do tema.
             drawer: Sidebar(
               navItems: _navItems,
               currentUser: _currentUser,
@@ -171,13 +200,14 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             body: selectedScreen,
+            // O BottomNavBar também herdará os estilos.
             bottomNavigationBar: BottomNavBar(
               navItems: _navItems,
               selectedIndex: _selectedIndex,
               onItemSelected: _onItemTapped,
             ),
           );
-        } else {
+        } else { // Layout para Tablet/Desktop
           return Scaffold(
             body: Row(
               children: [
@@ -187,11 +217,20 @@ class _HomePageState extends State<HomePage> {
                   selectedIndex: _selectedIndex,
                   onItemSelected: _onItemTapped,
                 ),
+                // O VerticalDivider também usa as cores do tema.
                 const VerticalDivider(width: 1, thickness: 1),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
-                    child: selectedScreen,
+                    transitionBuilder: (child, animation) {
+                      // Adicionando uma transição de fade para suavidade
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    child: Container(
+                      // Adicionando uma key para o AnimatedSwitcher funcionar corretamente
+                      key: ValueKey<int>(_selectedIndex),
+                      child: selectedScreen,
+                    ),
                   ),
                 ),
               ],

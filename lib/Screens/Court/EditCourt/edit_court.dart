@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:myapp/models/court_model.dart';
 import 'package:myapp/services/court_service.dart';
 
+import '../../../themes.dart';
+
 class AddCourtSheet extends StatefulWidget {
   final String gymId;
   final VoidCallback onCourtAdded;
@@ -19,6 +21,7 @@ class AddCourtSheet extends StatefulWidget {
 }
 
 class _AddCourtSheetState extends State<AddCourtSheet> {
+  // A lógica de negócio e estado foi mantida 100% intacta.
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _sportTypeController = TextEditingController();
@@ -45,7 +48,11 @@ class _AddCourtSheetState extends State<AddCourtSheet> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quadra adicionada com sucesso!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: const Text('Quadra adicionada com sucesso!'),
+            // Usando a cor de sucesso do nosso tema
+            backgroundColor: AppTheme.colorSuccess,
+          ),
         );
         widget.onCourtAdded();
         Navigator.pop(context);
@@ -53,7 +60,11 @@ class _AddCourtSheetState extends State<AddCourtSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao adicionar quadra: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Erro ao adicionar quadra: $e'),
+            // Usando a cor de erro do nosso tema
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } finally {
@@ -71,36 +82,72 @@ class _AddCourtSheetState extends State<AddCourtSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    // O padding inferior é ajustado para considerar o teclado
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        top: 24,
+        left: 24,
+        right: 24,
+        bottom: bottomPadding + 24,
       ),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Nova Quadra', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-              TextFormField(controller: _nameController, decoration: const InputDecoration(labelText: 'Nome da Quadra'), validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null),
-              const SizedBox(height: 16),
-              TextFormField(controller: _sportTypeController, decoration: const InputDecoration(labelText: 'Tipo de Esporte (Ex: Futsal, Tênis)'), validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null),
-              const SizedBox(height: 16),
-              TextFormField(controller: _priceController, decoration: const InputDecoration(labelText: 'Preço por Hora'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null),
-              const SizedBox(height: 32),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('Salvar Quadra', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Nova Quadra',
+              textAlign: TextAlign.center,
+              // Usando o estilo de texto do tema
+              style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 32),
+            TextFormField(
+              controller: _nameController,
+              // A decoração do input vem do inputDecorationTheme.
+              decoration: const InputDecoration(
+                labelText: 'Nome da Quadra',
+                prefixIcon: Icon(Icons.label_outline),
               ),
-            ],
-          ),
+              validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _sportTypeController,
+              decoration: const InputDecoration(
+                labelText: 'Tipo de Esporte (Ex: Futsal)',
+                prefixIcon: Icon(Icons.sports_soccer_outlined),
+              ),
+              validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _priceController,
+              decoration: const InputDecoration(
+                labelText: 'Preço por Hora',
+                prefixIcon: Icon(Icons.monetization_on_outlined),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null,
+            ),
+            const SizedBox(height: 32),
+            _isLoading
+                ? Center(child: CircularProgressIndicator(color: theme.colorScheme.primary))
+                : SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                // O estilo do botão vem do elevatedButtonTheme.
+                onPressed: _submitForm,
+                child: const Text('Salvar Quadra'),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -13,19 +13,21 @@ class ManageGymScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     // Usamos o DefaultTabController para gerenciar o estado das abas
     return DefaultTabController(
       length: 3, // O número de abas
       child: Scaffold(
         appBar: AppBar(
           title: Text(gym.nome),
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 1,
-          bottom: const TabBar(
-            labelColor: Colors.blue,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.blue,
-            tabs: [
+          // A estilização da AppBar (cor, elevação, etc.) é herdada do AppTheme
+          bottom: TabBar(
+            // As cores da TabBar agora vêm do nosso tema
+            labelColor: theme.colorScheme.primary,
+            unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+            indicatorColor: theme.colorScheme.primary,
+            tabs: const [
               Tab(icon: Icon(Icons.info_outline), text: 'Informações'),
               Tab(icon: Icon(Icons.sports_soccer_outlined), text: 'Quadras'),
               Tab(icon: Icon(Icons.people_alt_outlined), text: 'Funcionários'),
@@ -37,7 +39,6 @@ class ManageGymScreen extends StatelessWidget {
             // Conteúdo de cada aba
             GymInfoTab(gym: gym),
             GymCourtsTab(gym: gym),
-            // CORREÇÃO: Substituído o placeholder pela aba funcional
             GymEmployeesTab(gym: gym),
           ],
         ),

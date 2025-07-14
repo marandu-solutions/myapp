@@ -6,7 +6,7 @@ class GymModel {
   final String id;
   final String nome;
   final String endereco;
-  final String fotoUrl;
+  late final String fotoUrl;
   final String horarioAbertura; // Ex: "08:00"
   final String horarioFechamento; // Ex: "22:00"
   final bool ativo;

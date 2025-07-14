@@ -1,8 +1,11 @@
+// Arquivo: lib/Screens/Employees/Employees List Screen/employees_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:myapp/Screens/Employees/Employee%20Info%20Screen/employee_info_screen.dart';
-import 'package:myapp/Screens/Employees/Employees%20List%20Screen/components/add_employee.dart';
 import 'package:myapp/models/employee_model.dart';
 import 'package:myapp/services/employee_service.dart';
+
+import 'components/add_employee.dart';
 
 class AdminEmployeesScreen extends StatefulWidget {
   const AdminEmployeesScreen({Key? key}) : super(key: key);
@@ -31,15 +34,14 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: AddEmployeeSheet(
-            onEmployeeAdded: _refreshEmployeeList,
-          ),
+        // O AddEmployeeSheet já está estilizado, apenas o invocamos.
+        return AddEmployeeSheet(
+          onEmployeeAdded: _refreshEmployeeList,
         );
       },
     );
@@ -47,20 +49,18 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      // A cor de fundo é herdada automaticamente.
       appBar: AppBar(
         title: const Text('Gestão de Funcionários'),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 1,
-        titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+        // A estilização da AppBar é herdada do appBarTheme.
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.black54),
+            icon: const Icon(Icons.search),
             onPressed: () {
-              // Lógica para a busca será implementada aqui
+              // Lógica para a busca
             },
           ),
         ],
@@ -69,13 +69,38 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
         future: _employeesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+                child: CircularProgressIndicator(
+                    color: theme.colorScheme.primary));
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Erro ao carregar funcionários: ${snapshot.error}'));
+            return Center(
+                child: Text('Erro ao carregar funcionários: ${snapshot.error}',
+                    style: theme.textTheme.bodyLarge
+                        ?.copyWith(color: theme.colorScheme.error)));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Nenhum funcionário encontrado.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline,
+                      size: 60,
+                      color: theme.colorScheme.onSurface.withOpacity(0.4)),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nenhum funcionário encontrado.',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Adicione um novo funcionário no botão +',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            );
           }
 
           final employees = snapshot.data!;
@@ -84,15 +109,16 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
             itemCount: employees.length,
             itemBuilder: (context, index) {
               final employee = employees[index];
-              return EmployeeCard(employee: employee);
+              return EmployeeCard(
+                  employee: employee, onRefresh: _refreshEmployeeList);
             },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddEmployeeSheet,
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
+        // O estilo do FAB é herdado do tema.
+        child: const Icon(Icons.add),
         tooltip: 'Adicionar Funcionário',
       ),
     );
@@ -102,28 +128,33 @@ class _AdminEmployeesScreenState extends State<AdminEmployeesScreen> {
 // Widget reutilizável para exibir as informações de cada funcionário
 class EmployeeCard extends StatelessWidget {
   final EmployeeModel employee;
+  final VoidCallback onRefresh; // Callback para atualizar a lista
 
-  const EmployeeCard({Key? key, required this.employee}) : super(key: key);
+  const EmployeeCard(
+      {Key? key, required this.employee, required this.onRefresh})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+
     return Card(
+      // O estilo do Card (cor, sombra, borda) é herdado do cardTheme.
       margin: const EdgeInsets.only(bottom: 16.0),
-      elevation: 2.0,
-      shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12.0),
-        // CORREÇÃO: Adicionada a lógica de navegação no onTap
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          // Navega para a tela de detalhes e aguarda um possível retorno
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => EmployeeInfoScreen(employee: employee),
             ),
           );
+          // Quando voltar da tela de detalhes, atualiza a lista
+          onRefresh();
         },
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -131,34 +162,21 @@ class EmployeeCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: Colors.blue.withOpacity(0.1),
+                backgroundColor: colorScheme.primary.withOpacity(0.1),
+                backgroundImage: employee.fotoUrl.isNotEmpty
+                    ? NetworkImage(employee.fotoUrl)
+                    : null,
                 child: employee.fotoUrl.isEmpty
                     ? Text(
-                        employee.nomeCompleto.isNotEmpty ? employee.nomeCompleto[0] : 'E',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      )
-                    : ClipOval(
-                        child: Image.network(
-                          employee.fotoUrl,
-                          fit: BoxFit.cover,
-                          width: 60,
-                          height: 60,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Text(
-                              employee.nomeCompleto.isNotEmpty ? employee.nomeCompleto[0] : 'E',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                  employee.nomeCompleto.isNotEmpty
+                      ? employee.nomeCompleto[0].toUpperCase()
+                      : 'E',
+                  style: textTheme.headlineSmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+                    : null,
               ),
               const SizedBox(width: 16.0),
               Expanded(
@@ -167,23 +185,20 @@ class EmployeeCard extends StatelessWidget {
                   children: [
                     Text(
                       employee.nomeCompleto,
-                      style: const TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4.0),
                     Row(
                       children: [
-                        Icon(Icons.email_outlined, color: Colors.grey[600], size: 16),
+                        Icon(Icons.email_outlined,
+                            color: colorScheme.onSurfaceVariant, size: 16),
                         const SizedBox(width: 4.0),
                         Expanded(
                           child: Text(
                             employee.email,
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              color: Colors.grey[600],
-                            ),
+                            style: textTheme.bodyMedium
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -192,7 +207,7 @@ class EmployeeCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
+              Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
             ],
           ),
         ),

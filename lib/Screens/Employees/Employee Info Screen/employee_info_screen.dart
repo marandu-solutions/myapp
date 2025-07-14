@@ -1,19 +1,23 @@
+// Arquivo: lib/screens/Employees/EmployeeInfo/employee_info_screen.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:myapp/models/employee_model.dart'; // Ajuste o caminho se necessário
-import 'package:myapp/services/employee_service.dart'; // Ajuste o caminho se necessário
+// --- IMPORTAÇÕES DO SEU PROJETO ---
+import 'package:myapp/models/employee_model.dart';
+import 'package:myapp/services/employee_service.dart';
+
+import '../../../themes.dart';
 
 // NOTA: Para esta tela funcionar, adicione as seguintes dependências ao seu pubspec.yaml:
 // dependencies:
-//   flutter:
-//     sdk: flutter
 //   image_picker: ^1.0.4
 //   firebase_storage: ^11.5.3
 //   path: ^1.8.3
+// E adicione uma imagem placeholder em: assets/images/placeholder.png
 
 class EmployeeInfoScreen extends StatefulWidget {
   final EmployeeModel employee;
@@ -25,6 +29,7 @@ class EmployeeInfoScreen extends StatefulWidget {
 }
 
 class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
+  // --- TODA A LÓGICA DE ESTADO E SERVIÇOS FOI MANTIDA INTOCADA ---
   final _formKey = GlobalKey<FormState>();
   final EmployeeService _employeeService = EmployeeService();
 
@@ -57,10 +62,10 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
     super.dispose();
   }
 
+  // --- MÉTODOS DE LÓGICA (NENHUMA ALTERAÇÃO) ---
   Future<void> _pickImage() async {
     final pickedFile =
     await ImagePicker().pickImage(source: ImageSource.gallery);
-
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -70,31 +75,23 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
 
   Future<String?> _uploadImage(String employeeId) async {
     if (_imageFile == null) return null;
-
     try {
       final fileExtension = p.extension(_imageFile!.path);
       final ref = FirebaseStorage.instance
           .ref('profile_pictures')
           .child('$employeeId$fileExtension');
-
       await ref.putFile(_imageFile!);
-      final downloadUrl = await ref.getDownloadURL();
-      return downloadUrl;
+      return await ref.getDownloadURL();
     } catch (e) {
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao fazer upload da imagem: $e'), backgroundColor: Colors.red),
-        );
+      if (mounted) {
+        _showErrorSnackBar('Erro ao fazer upload da imagem: $e');
       }
       return null;
     }
   }
 
   Future<void> _saveChanges() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
     try {
@@ -113,34 +110,19 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
 
       await _employeeService.updateEmployee(widget.employee.uid, updatedData);
 
-      // Atualiza o objeto local para refletir as mudanças imediatamente
       widget.employee.nomeCompleto = _nameController.text;
       widget.employee.cpf = _cpfController.text;
       widget.employee.telefone = _phoneController.text;
       widget.employee.ativo = _isActive;
-      if (newImageUrl != null) {
-        widget.employee.fotoUrl = newImageUrl;
-      }
+      if (newImageUrl != null) widget.employee.fotoUrl = newImageUrl;
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Funcionário atualizado com sucesso!'),
-              backgroundColor: Colors.green),
-        );
+        _showSuccessSnackBar('Funcionário atualizado com sucesso!');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Erro ao atualizar: $e'),
-              backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) _showErrorSnackBar('Erro ao atualizar: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -152,32 +134,46 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
     try {
       await _employeeService.deleteEmployee(widget.employee.uid);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Funcionário deletado.'),
-              backgroundColor: Colors.blueGrey),
-        );
+        _showInfoSnackBar('Funcionário deletado.');
         Navigator.of(context).pop();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Erro ao deletar: $e'),
-              backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) _showErrorSnackBar('Erro ao deletar: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // --- MÉTODOS DE UI (AQUI ESTÃO AS MUDANÇAS DE DESIGN) ---
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: AppTheme.colorSuccess,
+    ));
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: Theme.of(context).colorScheme.error,
+    ));
+  }
+
+  void _showInfoSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.blueGrey,
+    ));
+  }
+
   Future<bool?> _showDeleteConfirmationDialog() {
+    final theme = Theme.of(context);
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.borderRadius)),
         title: const Text('Confirmar Exclusão'),
         content: const Text(
             'Você tem certeza que deseja deletar este funcionário? Esta ação não pode ser desfeita.'),
@@ -186,9 +182,12 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
+          ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
+            ),
             child: const Text('Deletar'),
           ),
         ],
@@ -198,25 +197,20 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.grey.shade100, // Fundo um pouco cinza para web
-      appBar: AppBar(
-        title: const Text('Editar Funcionário', style: TextStyle(color: Colors.black87)),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black87),
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(title: const Text('Editar Funcionário')),
       body: Stack(
         children: [
           Form(
             key: _formKey,
-            // LayoutBuilder decide qual layout usar com base na largura da tela
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (constraints.maxWidth > 768) {
-                  return _buildWebLayout(); // Layout para telas largas
+                  return _buildWebLayout();
                 } else {
-                  return _buildMobileLayout(); // Layout para telas estreitas
+                  return _buildMobileLayout();
                 }
               },
             ),
@@ -224,24 +218,26 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
           if (_isLoading)
             Container(
               color: Colors.black.withOpacity(0.5),
-              child: const Center(child: CircularProgressIndicator()),
+              child: Center(
+                  child: CircularProgressIndicator(
+                      color: theme.colorScheme.primary)),
             ),
         ],
       ),
     );
   }
 
-  // Layout para Mobile
   Widget _buildMobileLayout() {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+      padding: const EdgeInsets.all(24.0),
       children: [
         _buildProfilePicture(),
         const SizedBox(height: 16),
         Text(
           widget.employee.email,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 32),
         _buildFormFields(),
@@ -251,51 +247,47 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
     );
   }
 
-  // Layout para Web/Desktop
   Widget _buildWebLayout() {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1000),
           child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             clipBehavior: Clip.antiAlias,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Coluna da Esquerda
                 Expanded(
                   flex: 2,
                   child: Container(
-                    color: Colors.white,
+                    color: theme.cardColor,
                     padding: const EdgeInsets.all(32.0),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const SizedBox(height: 32),
                         _buildProfilePicture(),
                         const SizedBox(height: 16),
                         Text(
                           widget.employee.email,
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant),
                         ),
                         const Spacer(),
                         _buildActionButtons(),
+                        const SizedBox(height: 32),
                       ],
                     ),
                   ),
                 ),
-                // Coluna da Direita
                 Expanded(
                   flex: 3,
                   child: Container(
-                    color: Colors.grey.shade50,
+                    color: theme.scaffoldBackgroundColor,
                     padding: const EdgeInsets.all(32.0),
-                    child: SingleChildScrollView(
-                      child: _buildFormFields(),
-                    ),
+                    child: SingleChildScrollView(child: _buildFormFields()),
                   ),
                 ),
               ],
@@ -306,7 +298,6 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
     );
   }
 
-  // Widgets compartilhados entre os layouts
   Widget _buildFormFields() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -334,16 +325,14 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
   }
 
   Widget _buildProfilePicture() {
+    final theme = Theme.of(context);
     ImageProvider<Object> imageProvider;
     if (_imageFile != null) {
       imageProvider = FileImage(_imageFile!);
     } else if (widget.employee.fotoUrl.isNotEmpty) {
       imageProvider = NetworkImage(widget.employee.fotoUrl);
     } else {
-      // É uma boa prática ter um placeholder nos seus assets
-      // Ex: assets/images/placeholder.png
-      // Por enquanto, usaremos um fallback de cor.
-      imageProvider = const AssetImage('assets/placeholder.png');
+      imageProvider = const AssetImage('assets/images/placeholder.png');
     }
 
     return Center(
@@ -351,15 +340,17 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
         children: [
           CircleAvatar(
             radius: 60,
-            backgroundColor: Colors.blue.shade50,
+            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
             backgroundImage: imageProvider,
-            onBackgroundImageError: (exception, stackTrace) {
-              // Trata erro de carregamento da imagem de rede
-            },
+            onBackgroundImageError: (exception, stackTrace) {},
             child: widget.employee.fotoUrl.isEmpty && _imageFile == null
                 ? Text(
-              widget.employee.nomeCompleto.isNotEmpty ? widget.employee.nomeCompleto[0].toUpperCase() : 'F',
-              style: TextStyle(fontSize: 50, color: Colors.blue.shade800, fontWeight: FontWeight.bold),
+              widget.employee.nomeCompleto.isNotEmpty
+                  ? widget.employee.nomeCompleto[0].toUpperCase()
+                  : 'F',
+              style: theme.textTheme.displaySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold),
             )
                 : null,
           ),
@@ -368,14 +359,15 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
             right: 0,
             child: GestureDetector(
               onTap: _pickImage,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: Colors.blue.shade700,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2)
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: theme.cardColor,
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: theme.colorScheme.primary,
+                  child: Icon(Icons.camera_alt,
+                      color: theme.colorScheme.onPrimary, size: 20),
                 ),
-                child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
               ),
             ),
           ),
@@ -384,49 +376,28 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildTextField(
+      {required TextEditingController controller,
+        required String label,
+        required IconData icon,
+        TextInputType keyboardType = TextInputType.text}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Colors.blue.shade700),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
-        ),
-        filled: true,
-        fillColor: Colors.white,
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Este campo não pode ser vazio';
-        }
-        return null;
-      },
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
+      validator: (value) =>
+      (value == null || value.isEmpty) ? 'Este campo não pode ser vazio' : null,
     );
   }
 
   Widget _buildStatusSwitch() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.0),
-          border: Border.all(color: Colors.grey.shade300)
+        color: theme.inputDecorationTheme.fillColor,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -434,21 +405,19 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
           Row(
             children: [
               Icon(
-                _isActive ? Icons.check_circle_outline : Icons.highlight_off_outlined,
-                color: _isActive ? Colors.green : Colors.grey,
+                _isActive
+                    ? Icons.check_circle_outline
+                    : Icons.highlight_off_outlined,
+                color: _isActive ? AppTheme.colorSuccess : theme.colorScheme.onSurface.withOpacity(0.5),
               ),
               const SizedBox(width: 12),
-              const Text('Funcionário Ativo', style: TextStyle(fontSize: 16, color: Colors.black87)),
+              Text('Funcionário Ativo', style: theme.textTheme.titleMedium),
             ],
           ),
           Switch(
             value: _isActive,
-            onChanged: (value) {
-              setState(() {
-                _isActive = value;
-              });
-            },
-            activeColor: Colors.blue.shade700,
+            onChanged: (value) => setState(() => _isActive = value),
+            activeColor: AppTheme.colorSuccess,
           ),
         ],
       ),
@@ -458,26 +427,17 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
   Widget _buildActionButtons() {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: _saveChanges,
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.blue.shade700,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            child: const Text('Salvar Alterações'),
-          ),
+        ElevatedButton(
+          onPressed: _saveChanges,
+          child: const Text('Salvar Alterações'),
         ),
         const SizedBox(height: 16),
         TextButton.icon(
-          icon: const Icon(Icons.delete_outline, color: Colors.red),
-          label: const Text('Deletar Funcionário', style: TextStyle(color: Colors.red)),
+          icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+          label: Text('Deletar Funcionário',
+              style: TextStyle(color: Theme.of(context).colorScheme.error)),
           onPressed: _deleteEmployee,
         ),
       ],

@@ -1,6 +1,8 @@
+// lib/Screens/Scheduling/Scheduling Screen/scheduling_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
-import 'package:intl/intl.dart'; // Importe para formatação de data
+import 'package:intl/intl.dart';
 
 // --- IMPORTAÇÕES DO SEU PROJETO ---
 import '../../../models/court_model.dart';
@@ -9,7 +11,10 @@ import '../../../models/reservation_model.dart';
 import '../../../services/court_service.dart';
 import '../../../services/gyms_service.dart';
 import '../../../services/reservataion_service.dart';
+// --- IMPORTAÇÕES DAS TELAS ---
+import '../../../themes.dart';
 import '../../Reservation/ReservationDetails/reservation_details.dart';
+import '../../Reservation/ReservationScreen/reservation_screen.dart'; // <<< TELA DE CRIAR RESERVA
 
 class SchedulingScreen extends StatefulWidget {
   const SchedulingScreen({Key? key}) : super(key: key);
@@ -19,12 +24,11 @@ class SchedulingScreen extends StatefulWidget {
 }
 
 class _SchedulingScreenState extends State<SchedulingScreen> {
-  // --- SERVICES ---
+  // --- TODA A LÓGICA DE ESTADO E SERVIÇOS FOI MANTIDA INTOCADA ---
   final GymService _gymService = GymService();
   final CourtService _courtService = CourtService();
   final ReservationService _reservationService = ReservationService();
 
-  // --- STATE MANAGEMENT ---
   List<GymModel> _gyms = [];
   List<CourtModel> _courts = [];
   GymModel? _selectedGym;
@@ -37,32 +41,36 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
   final CalendarController _calendarController = CalendarController();
   late DateTime _currentWeekStartDate;
 
-  // --- NOVO: Variáveis para seleção de Mês e Ano ---
   int? _selectedMonth;
   int? _selectedYear;
 
-  // Listas para os Dropdowns
   final List<String> _months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
-  final List<int> _years = List.generate(5, (index) => DateTime.now().year - 2 + index); // Gera 5 anos (2 passados, atual, 2 futuros)
+  final List<int> _years =
+  List.generate(5, (index) => DateTime.now().year - 2 + index);
 
-
+  // --- NENHUMA MUDANÇA NO INITSTATE OU MÉTODOS DE DADOS ---
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     _currentWeekStartDate = _getStartOfWeek(now);
-
-    // Define a seleção inicial para o mês e ano atuais
     _selectedMonth = now.month;
     _selectedYear = now.year;
-
     _loadGyms();
   }
 
-  // --- LÓGICA DE DADOS ---
+  void _refreshCalendar() {
+    // Limpa o cache da semana atual para forçar o recarregamento
+    if (_selectedCourt != null) {
+      final cacheKey =
+          '${_selectedCourt!.id}-${_currentWeekStartDate.toIso8601String()}';
+      _cachedReservations.remove(cacheKey);
+      _fetchReservationsForWeek(_currentWeekStartDate);
+    }
+  }
 
   Future<void> _loadGyms() async {
     try {
@@ -77,7 +85,10 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
       if (mounted) {
         setState(() => _isLoadingGyms = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar ginásios: $e')),
+          SnackBar(
+            content: Text('Erro ao carregar ginásios: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     }
@@ -105,7 +116,9 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
       if (mounted) {
         setState(() => _isLoadingCourts = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar quadras: $e')),
+          SnackBar(
+              content: Text('Erro ao carregar quadras: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
     }
@@ -116,14 +129,12 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
       _selectedCourt = selectedCourt;
       _cachedReservations.clear();
       if (selectedCourt != null) {
-        // Ao selecionar uma quadra, vai para a data selecionada nos dropdowns
         _updateCalendarDisplayDate();
         _fetchReservationsForWeek(_currentWeekStartDate);
       }
     });
   }
 
-  // --- NOVOS MÉTODOS para Mês e Ano ---
   void _onMonthSelected(int? month) {
     if (month == null) return;
     setState(() {
@@ -140,7 +151,6 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
     _updateCalendarDisplayDate();
   }
 
-  // Centraliza a lógica para atualizar a data de exibição do calendário
   void _updateCalendarDisplayDate() {
     if (_selectedYear != null && _selectedMonth != null) {
       final newDate = DateTime(_selectedYear!, _selectedMonth!);
@@ -156,7 +166,8 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
 
     setState(() => _isCalendarLoading = true);
     try {
-      final reservations = await _reservationService.getReservationsForWeek(courtId, weekDate);
+      final reservations =
+      await _reservationService.getReservationsForWeek(courtId, weekDate);
       if (mounted) {
         setState(() {
           _cachedReservations[cacheKey] = reservations;
@@ -176,9 +187,9 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
 
     if (newWeekStartDate != _currentWeekStartDate) {
       _currentWeekStartDate = newWeekStartDate;
-      // Atualiza os seletores de mês e ano para refletir a navegação
       final displayDate = details.visibleDates.first.add(const Duration(days: 3));
-      if(displayDate.month != _selectedMonth || displayDate.year != _selectedYear){
+      if (displayDate.month != _selectedMonth ||
+          displayDate.year != _selectedYear) {
         setState(() {
           _selectedMonth = displayDate.month;
           _selectedYear = displayDate.year;
@@ -190,7 +201,8 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
 
   void _onReservationTapped(CalendarTapDetails details) {
     if (details.appointments == null || details.appointments!.isEmpty) return;
-    final ReservationModel reservation = details.appointments!.first.resourceIds!.first;
+    final ReservationModel reservation =
+        details.appointments!.first.resourceIds!.first;
 
     showModalBottomSheet(
       context: context,
@@ -198,28 +210,30 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => ReservationDetailsSheet(
         reservation: reservation,
-        onActionCompleted: () {
-          final cacheKey = '${_selectedCourt!.id}-${_currentWeekStartDate.toIso8601String()}';
-          _cachedReservations.remove(cacheKey);
-          _fetchReservationsForWeek(_currentWeekStartDate);
-        },
+        onActionCompleted: _refreshCalendar,
       ),
     );
   }
 
-  // --- MÉTODOS DE BUILD ---
+  DateTime _getStartOfWeek(DateTime date) {
+    return date.subtract(Duration(days: date.weekday - 1));
+  }
+
+  // --- MÉTODOS DE BUILD (AQUI ESTÃO AS MUDANÇAS DE DESIGN) ---
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Agenda'),
         actions: [
           if (_selectedCourt != null)
             IconButton(
-              icon: const Icon(Icons.today),
+              icon: Icon(Icons.today, color: theme.colorScheme.primary),
+              tooltip: 'Ir para Hoje',
               onPressed: () {
-                // O botão 'Hoje' agora também reseta os seletores
                 setState(() {
                   _selectedMonth = DateTime.now().month;
                   _selectedYear = DateTime.now().year;
@@ -232,22 +246,40 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
       body: Column(
         children: [
           _buildSelectorsPanel(),
-          const Divider(height: 1, thickness: 1.5),
+          Divider(height: 1, thickness: 1, color: theme.dividerColor),
           Expanded(
             child: _buildCalendarView(),
           ),
         ],
       ),
+      // <<< BOTÃO ADICIONADO AQUI >>>
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          // Navega para a tela de criação de reserva
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreateReservationScreen(),
+            ),
+          ).then((_) {
+            // Quando a tela de criação for fechada, atualiza o calendário
+            if (_selectedCourt != null) {
+              _refreshCalendar();
+            }
+          });
+        },
+        label: const Text('Agendar'),
+        icon: const Icon(Icons.add),
+      ),
     );
   }
 
-  // --- MÉTODO ATUALIZADO para incluir os novos seletores ---
   Widget _buildSelectorsPanel() {
     return Padding(
       padding: const EdgeInsets.all(12.0),
-      child: Column( // Envolvido em uma Coluna
+      child: Column(
         children: [
-          Row( // Linha 1: Ginásio e Quadra
+          Row(
             children: [
               Expanded(
                 child: DropdownButtonFormField<GymModel>(
@@ -256,8 +288,10 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
                   isExpanded: true,
                   onChanged: _onGymSelected,
                   items: _gyms.map((gym) => DropdownMenuItem(value: gym, child: Text(gym.nome, overflow: TextOverflow.ellipsis))).toList(),
-                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                  disabledHint: _isLoadingGyms ? const Text('Carregando...') : const Text('Nenhum ginásio'),
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.sports_basketball_outlined)),
+                  disabledHint: _isLoadingGyms
+                      ? const Text('Carregando...')
+                      : const Text('Nenhum ginásio'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -268,14 +302,16 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
                   isExpanded: true,
                   onChanged: _onCourtSelected,
                   items: _courts.map((court) => DropdownMenuItem(value: court, child: Text(court.name, overflow: TextOverflow.ellipsis))).toList(),
-                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                  disabledHint: _isLoadingCourts ? const Text('Carregando...') : const Text('Selecione um ginásio'),
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.sports_soccer_outlined)),
+                  disabledHint: _isLoadingCourts
+                      ? const Text('Carregando...')
+                      : const Text('Selecione um ginásio'),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12), // Espaçamento entre as linhas
-          Row( // Linha 2: Mês e Ano
+          const SizedBox(height: 12),
+          Row(
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
@@ -284,7 +320,7 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
                   isExpanded: true,
                   onChanged: _onMonthSelected,
                   items: List.generate(12, (index) => DropdownMenuItem(value: index + 1, child: Text(_months[index]))),
-                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.calendar_month_outlined)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -295,7 +331,7 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
                   isExpanded: true,
                   onChanged: _onYearSelected,
                   items: _years.map((year) => DropdownMenuItem(value: year, child: Text(year.toString()))).toList(),
-                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.calendar_view_day_outlined)),
                 ),
               ),
             ],
@@ -306,17 +342,33 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
   }
 
   Widget _buildCalendarView() {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
     if (_selectedCourt == null) {
-      return const Center(
-        child: Text(
-          'Selecione um ginásio e uma quadra para ver a agenda.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.ballot_outlined, size: 60, color: theme.colorScheme.onSurface.withOpacity(0.4)),
+              const SizedBox(height: 16),
+              Text(
+                'Selecione um ginásio e uma quadra para ver a agenda.',
+                textAlign: TextAlign.center,
+                style: textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6)
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    final cacheKey = '${_selectedCourt!.id}-${_currentWeekStartDate.toIso8601String()}';
+    final cacheKey =
+        '${_selectedCourt!.id}-${_currentWeekStartDate.toIso8601String()}';
     final reservations = _cachedReservations[cacheKey] ?? [];
 
     return Stack(
@@ -324,34 +376,39 @@ class _SchedulingScreenState extends State<SchedulingScreen> {
         SfCalendar(
           controller: _calendarController,
           view: CalendarView.week,
-          firstDayOfWeek: 1, // Segunda-feira
+          firstDayOfWeek: 1,
           dataSource: _ReservationDataSource(reservations),
           onViewChanged: _onViewChanged,
           onTap: _onReservationTapped,
-          headerDateFormat: 'MMMM yyyy',
-          timeSlotViewSettings: const TimeSlotViewSettings(
+          headerStyle: CalendarHeaderStyle(
+            textAlign: TextAlign.center,
+            textStyle: textTheme.titleLarge,
+          ),
+          viewHeaderStyle: ViewHeaderStyle(
+            dayTextStyle: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+            dateTextStyle: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          timeSlotViewSettings: TimeSlotViewSettings(
             timeIntervalHeight: 60,
             startHour: 0,
             endHour: 24,
             timeFormat: 'HH:mm',
+            timeTextStyle: textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.7)
+            ),
           ),
         ),
         if (_isCalendarLoading)
           Container(
-            color: Colors.black.withOpacity(0.3),
-            child: const Center(
+            color: theme.scaffoldBackgroundColor.withOpacity(0.5),
+            child: Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                color: theme.colorScheme.primary,
               ),
             ),
           ),
       ],
     );
-  }
-
-  // Corrigido para semanas que começam na segunda-feira (firstDayOfWeek: 1)
-  DateTime _getStartOfWeek(DateTime date) {
-    return date.subtract(Duration(days: date.weekday - 1));
   }
 }
 
@@ -372,12 +429,18 @@ class _ReservationDataSource extends CalendarDataSource {
   Object? getResource(int index) => appointments![index].resourceIds?.first;
 
   Color _getReservationColor(String status) {
-    switch (status) {
-      case 'confirmada': return Colors.blue.shade400;
-      case 'pendente': return Colors.orange.shade400;
-      case 'bloqueado': return Colors.grey.shade500;
-      case 'cancelada': return Colors.red.shade300;
-      default: return Colors.blue.shade300;
+    switch (status.toLowerCase()) {
+      case 'confirmada':
+        return AppTheme.colorSuccess;
+      case 'pendente':
+        return AppTheme.colorWarning;
+      case 'bloqueado':
+        return AppTheme.colorError.withOpacity(0.7);
+      case 'cancelada':
+        return AppTheme.colorError;
+      default:
+      // CORREÇÃO: Removida a opacidade para deixar a cor sólida
+        return AppTheme.colorSuccess;
     }
   }
 }

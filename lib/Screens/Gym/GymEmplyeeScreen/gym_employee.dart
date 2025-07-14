@@ -7,7 +7,8 @@ import 'package:myapp/models/shift_model.dart';
 import 'package:myapp/services/employee_service.dart';
 import 'package:myapp/services/shift_service.dart';
 
-import 'components/add_shift.dart';
+import '../../../themes.dart';
+import 'components/add_shift.dart'; // Ajuste o caminho
 
 class GymEmployeesTab extends StatefulWidget {
   final GymModel gym;
@@ -37,31 +38,60 @@ class _GymEmployeesTabState extends State<GymEmployeesTab> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: AddShiftSheet(
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        // O AddShiftSheet já foi estilizado, apenas o invocamos
+        return AddShiftSheet(
           gymId: widget.gym.id,
           onShiftAdded: _refreshShiftList,
-        ),
-      ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       body: FutureBuilder<List<ShiftModel>>(
         future: _shiftsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+                child: CircularProgressIndicator(
+                    color: theme.colorScheme.primary));
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Erro ao carregar turnos: ${snapshot.error}'));
+            return Center(
+                child: Text('Erro ao carregar turnos: ${snapshot.error}',
+                    style: theme.textTheme.bodyLarge
+                        ?.copyWith(color: theme.colorScheme.error)));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Nenhum funcionário atribuído a este ginásio.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.group_off_outlined,
+                      size: 60,
+                      color: theme.colorScheme.onSurface.withOpacity(0.4)),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nenhum funcionário atribuído.',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Atribua um funcionário no botão +',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            );
           }
 
           final shifts = snapshot.data!;
@@ -70,15 +100,17 @@ class _GymEmployeesTabState extends State<GymEmployeesTab> {
             itemCount: shifts.length,
             itemBuilder: (context, index) {
               final shift = shifts[index];
-              return ShiftCard(shift: shift);
+              return ShiftCard(
+                shift: shift,
+                onShiftDeleted: _refreshShiftList,
+              );
             },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddShiftSheet,
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
         tooltip: 'Atribuir Funcionário',
       ),
     );
@@ -88,17 +120,71 @@ class _GymEmployeesTabState extends State<GymEmployeesTab> {
 // Widget para exibir cada turno/atribuição
 class ShiftCard extends StatelessWidget {
   final ShiftModel shift;
+  final VoidCallback onShiftDeleted;
   final EmployeeService _employeeService = EmployeeService();
+  final ShiftService _shiftService = ShiftService();
 
-  ShiftCard({Key? key, required this.shift}) : super(key: key);
+  ShiftCard({Key? key, required this.shift, required this.onShiftDeleted})
+      : super(key: key);
+
+  Future<void> _deleteShift(BuildContext context) async {
+    final theme = Theme.of(context);
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.borderRadius)),
+        title: const Text('Remover Atribuição'),
+        content: const Text(
+            'Você tem certeza que deseja remover este funcionário do turno?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
+            ),
+            child: const Text('Sim, Remover'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        await _shiftService.deleteShift(shift.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Atribuição removida com sucesso.'),
+            backgroundColor: AppTheme.colorSuccess,
+          ),
+        );
+        onShiftDeleted();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao remover atribuição: $e'),
+            backgroundColor: theme.colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Busca os dados do funcionário para exibir nome e foto
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+
     return FutureBuilder<EmployeeModel?>(
       future: _employeeService.getEmployee(shift.employeeId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Card(child: ListTile(title: Text('Carregando...')));
         }
         final employee = snapshot.data;
@@ -106,20 +192,27 @@ class ShiftCard extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.blue.withOpacity(0.1),
-              backgroundImage: (employee?.fotoUrl ?? '').isNotEmpty ? NetworkImage(employee!.fotoUrl) : null,
+              backgroundColor: colorScheme.primary.withOpacity(0.1),
+              backgroundImage: (employee?.fotoUrl ?? '').isNotEmpty
+                  ? NetworkImage(employee!.fotoUrl)
+                  : null,
               child: (employee?.fotoUrl ?? '').isEmpty
-                  ? Text(employee?.nomeCompleto[0] ?? 'F')
+                  ? Text(
+                employee?.nomeCompleto[0] ?? 'F',
+                style: textTheme.titleLarge
+                    ?.copyWith(color: colorScheme.primary),
+              )
                   : null,
             ),
-            title: Text(employee?.nomeCompleto ?? 'Funcionário não encontrado', style: const TextStyle(fontWeight: FontWeight.bold)),
-            // CORREÇÃO: Converte o Timestamp para DateTime usando .toDate()
-            subtitle: Text('Expediente: ${TimeOfDay.fromDateTime(shift.startTime.toDate()).format(context)} - ${TimeOfDay.fromDateTime(shift.endTime.toDate()).format(context)}'),
+            title: Text(
+                employee?.nomeCompleto ?? 'Funcionário não encontrado',
+                style: textTheme.titleMedium),
+            subtitle: Text(
+                'Expediente: ${TimeOfDay.fromDateTime(shift.startTime.toDate()).format(context)} - ${TimeOfDay.fromDateTime(shift.endTime.toDate()).format(context)}'),
             trailing: IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () {
-                // TODO: Lógica para confirmar e deletar o turno
-              },
+              icon: Icon(Icons.delete_outline, color: colorScheme.error),
+              onPressed: () => _deleteShift(context),
+              tooltip: 'Remover Atribuição',
             ),
           ),
         );

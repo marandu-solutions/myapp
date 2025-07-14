@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:math';
 
+import '../../themes.dart';
+
 // --- Modelos de Dados para o Dashboard (Simulação) ---
+// A lógica dos modelos foi mantida
 class MetricData {
   final String title;
   final String value;
@@ -41,11 +44,11 @@ class FeedbackData {
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
 
-  // Dados de exemplo (mock data)
+  // A lógica de dados de exemplo foi mantida, apenas as cores foram atualizadas para usar o tema
   static final List<MetricData> _metrics = [
-    MetricData(title: 'Lucro Total (Mês)', value: 'R\$ 7.850', change: '+12.5%', icon: Icons.attach_money, color: Colors.green),
-    MetricData(title: 'Agendamentos (Mês)', value: '154', change: '+8.2%', icon: Icons.calendar_today, color: Colors.blue),
-    MetricData(title: 'Novos Clientes', value: '23', change: '+2.1%', icon: Icons.person_add_alt_1, color: Colors.orange),
+    MetricData(title: 'Lucro Total (Mês)', value: 'R\$ 7.850', change: '+12.5%', icon: Icons.attach_money, color: AppTheme.colorSuccess),
+    MetricData(title: 'Agendamentos (Mês)', value: '154', change: '+8.2%', icon: Icons.calendar_today, color: const Color(0xFF0D63F3)), // Cor primária do tema
+    MetricData(title: 'Novos Clientes', value: '23', change: '+2.1%', icon: Icons.person_add_alt_1, color: AppTheme.colorWarning),
     MetricData(title: 'Taxa de Ocupação', value: '72%', change: '-1.8%', icon: Icons.pie_chart, color: Colors.purple, isIncrease: false),
   ];
 
@@ -57,17 +60,17 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      // A cor de fundo é herdada do tema
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Define o número de colunas do grid com base na largura da tela
           final crossAxisCount = constraints.maxWidth < 600 ? 1 : (constraints.maxWidth < 1200 ? 2 : 4);
 
           return CustomScrollView(
             slivers: [
               const SliverToBoxAdapter(child: DashboardHeader()),
-              // Grid para os cards de métricas
               SliverPadding(
                 padding: const EdgeInsets.all(16.0),
                 sliver: SliverGrid(
@@ -75,7 +78,7 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisCount: crossAxisCount,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
-                    childAspectRatio: 2.5, // Proporção dos cards
+                    childAspectRatio: 2.5,
                   ),
                   delegate: SliverChildBuilderDelegate(
                         (context, index) => MetricCard(metric: _metrics[index]),
@@ -83,19 +86,18 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              // Gráfico de Lucro e Feedbacks
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
                 sliver: SliverToBoxAdapter(
                   child: constraints.maxWidth < 900
-                      ? Column( // Layout em coluna para telas menores
+                      ? Column(
                     children: [
                       const ProfitChartCard(),
                       const SizedBox(height: 16),
                       FeedbackCard(feedbacks: _feedbacks),
                     ],
                   )
-                      : Row( // Layout em linha para telas maiores
+                      : Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Expanded(flex: 3, child: ProfitChartCard()),
@@ -121,22 +123,19 @@ class DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Painel de Controle',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
+          Text('Painel de Controle', style: textTheme.headlineMedium),
           const SizedBox(height: 4),
           Text(
             'Resumo do desempenho do seu negócio.',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+            style: textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -150,10 +149,10 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
     return Card(
-      elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Row(
@@ -169,19 +168,17 @@ class MetricCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(metric.title, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                  Text(metric.title, style: textTheme.bodyMedium),
                   const SizedBox(height: 4),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(metric.value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text(metric.value, style: textTheme.headlineSmall),
                       const SizedBox(width: 8),
                       Text(
                         metric.change,
-                        style: TextStyle(
-                          color: metric.isIncrease ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                        style: textTheme.labelLarge?.copyWith(
+                          color: metric.isIncrease ? AppTheme.colorSuccess : AppTheme.colorError,
                         ),
                       ),
                     ],
@@ -201,22 +198,23 @@ class ProfitChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+
     return Card(
-      elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Lucro por Dia', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Lucro por Dia', style: textTheme.titleLarge),
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
               child: LineChart(
                 LineChartData(
-                  gridData: FlGridData(show: false),
+                  gridData: const FlGridData(show: false),
                   titlesData: FlTitlesData(
                     leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -226,12 +224,17 @@ class ProfitChartCard extends StatelessWidget {
                         showTitles: true,
                         reservedSize: 30,
                         getTitlesWidget: (value, meta) {
+                          final style = textTheme.bodySmall;
+                          Widget text;
                           switch (value.toInt()) {
-                            case 1: return const Text('Seg');
-                            case 3: return const Text('Qua');
-                            case 5: return const Text('Sex');
+                            case 1: text = Text('Seg', style: style); break;
+                            case 3: text = Text('Qua', style: style); break;
+                            case 5: text = Text('Sex', style: style); break;
+                            default: text = Text('', style: style); break;
                           }
-                          return const Text('');
+                          // Apenas o widget de texto é retornado, como esperado pelas
+                          // versões mais recentes da biblioteca fl_chart.
+                          return text;
                         },
                       ),
                     ),
@@ -244,13 +247,13 @@ class ProfitChartCard extends StatelessWidget {
                         FlSpot(4, 4), FlSpot(5, 6), FlSpot(6, 6.5),
                       ],
                       isCurved: true,
-                      color: Colors.blue,
+                      color: colorScheme.primary,
                       barWidth: 4,
                       isStrokeCapRound: true,
-                      dotData: FlDotData(show: false),
+                      dotData: const FlDotData(show: false),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.blue.withOpacity(0.1),
+                        color: colorScheme.primary.withOpacity(0.1),
                       ),
                     ),
                   ],
@@ -270,50 +273,56 @@ class FeedbackCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
     return Card(
-      elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Feedbacks Recentes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Feedbacks Recentes', style: textTheme.titleLarge),
             const SizedBox(height: 16),
-            ...feedbacks.map((feedback) => Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    child: Text(feedback.user[0]),
-                    backgroundColor: Colors.primaries[Random().nextInt(Colors.primaries.length)].withOpacity(0.2),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(feedback.user, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            const Spacer(),
-                            ...List.generate(5, (index) => Icon(
-                              index < feedback.rating ? Icons.star : Icons.star_border,
-                              color: Colors.amber,
-                              size: 16,
-                            )),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(feedback.comment, style: TextStyle(color: Colors.grey[700])),
-                      ],
+            ...feedbacks.map((feedback) {
+              final color = Colors.primaries[feedback.user.hashCode % Colors.primaries.length];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: color.withOpacity(0.1),
+                      child: Text(
+                        feedback.user[0],
+                        style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  )
-                ],
-              ),
-            )).toList(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(feedback.user, style: textTheme.titleSmall),
+                              const Spacer(),
+                              ...List.generate(5, (index) => Icon(
+                                index < feedback.rating ? Icons.star : Icons.star_border,
+                                color: AppTheme.colorWarning,
+                                size: 16,
+                              )),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(feedback.comment, style: textTheme.bodyMedium),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              );
+            }).toList(),
           ],
         ),
       ),

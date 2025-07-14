@@ -6,21 +6,21 @@ import 'package:myapp/Screens/Auth/LoginScreen/login_screen.dart';
 import 'package:myapp/Screens/HomePage/homepage.dart'; // Importa o NavItem
 import 'package:myapp/models/user_model.dart';
 
-class Sidebar extends StatelessWidget { // <<< ALTERADO para StatelessWidget
+class Sidebar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
-  final List<NavItem> navItems;   // <<< NOVO: Recebe a lista de itens pronta
-  final UserModel? currentUser;   // <<< NOVO: Recebe o usuário pronto
+  final List<NavItem> navItems;
+  final UserModel? currentUser;
 
   const Sidebar({
     Key? key,
     required this.selectedIndex,
     required this.onItemSelected,
-    required this.navItems,      // <<< NOVO
-    required this.currentUser,   // <<< NOVO
+    required this.navItems,
+    required this.currentUser,
   }) : super(key: key);
 
-  // Realiza o logout do usuário
+  // A lógica de logout foi mantida 100% intacta.
   void _performLogout(BuildContext context) async {
     await fb_auth.FirebaseAuth.instance.signOut();
     Navigator.of(context).pushAndRemoveUntil(
@@ -31,42 +31,63 @@ class Sidebar extends StatelessWidget { // <<< ALTERADO para StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    // Se os dados do usuário ainda não chegaram, mostra um loader.
-    // Isso é uma proteção extra, pois a HomePage já deve garantir isso.
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    // Proteção caso os dados do usuário ainda não tenham chegado.
     if (currentUser == null) {
-      return const Drawer(
+      return Drawer(
         width: 280,
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(
+          child: CircularProgressIndicator(color: colorScheme.primary),
+        ),
       );
     }
-
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final tt = theme.textTheme;
 
     final userName = currentUser!.nomeCompleto;
     final userEmail = currentUser!.email;
 
     return Drawer(
-      backgroundColor: cs.surface,
+      // A cor de fundo do Drawer agora vem do tema.
+      backgroundColor: theme.scaffoldBackgroundColor,
       elevation: 2,
       width: 280,
       child: Column(
         children: [
           UserAccountsDrawerHeader(
-            accountName: Text(userName, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: cs.onPrimary)),
-            accountEmail: Text(userEmail, style: tt.bodyMedium?.copyWith(color: cs.onPrimary.withOpacity(0.8))),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: cs.onPrimary,
-              child: Text(
-                userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                style: tt.headlineMedium?.copyWith(color: Colors.blue),
+            accountName: Text(
+              userName,
+              style: textTheme.titleLarge?.copyWith(
+                color: colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            decoration: const BoxDecoration(color: Colors.blue),
+            accountEmail: Text(
+              userEmail,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onPrimary.withOpacity(0.8),
+              ),
+            ),
+            currentAccountPicture: CircleAvatar(
+              // A cor de fundo do avatar vem do tema.
+              backgroundColor: colorScheme.onPrimary,
+              child: Text(
+                userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                style: textTheme.headlineSmall?.copyWith(
+                  // A cor do texto do avatar agora é a cor primária do tema.
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            // A cor de fundo do header agora é a cor primária do tema.
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
+            ),
           ),
 
-          // <<< ALTERADO: Loop usa a lista de navItems recebida por parâmetro
+          // O loop para construir os itens de navegação foi mantido.
           for (int i = 0; i < navItems.length; i++)
             _buildNavItem(
               context: context,
@@ -75,16 +96,22 @@ class Sidebar extends StatelessWidget { // <<< ALTERADO para StatelessWidget
               index: i,
             ),
 
-          const Spacer(),
+          const Spacer(), // Empurra o botão de sair para o final.
 
-          // Botão de Sair
+          // O botão de Sair agora usa as cores de erro do tema.
           const Divider(thickness: 1, indent: 16, endIndent: 16),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
             child: ListTile(
-              leading: Icon(Icons.logout, color: cs.error),
-              title: Text('Sair', style: tt.labelLarge?.copyWith(color: cs.error, fontWeight: FontWeight.bold)),
-              hoverColor: cs.error.withOpacity(0.1),
+              leading: Icon(Icons.logout, color: colorScheme.error),
+              title: Text(
+                'Sair',
+                style: textTheme.titleMedium?.copyWith(
+                  color: colorScheme.error,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              hoverColor: colorScheme.error.withOpacity(0.1),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               onTap: () => _performLogout(context),
             ),
@@ -95,7 +122,8 @@ class Sidebar extends StatelessWidget { // <<< ALTERADO para StatelessWidget
     );
   }
 
-  // O método _buildNavItem permanece o mesmo, mas agora é chamado com dados externos
+  // Widget para construir cada item da lista de navegação.
+  // Agora 100% integrado com o tema.
   Widget _buildNavItem({
     required BuildContext context,
     required IconData icon,
@@ -104,18 +132,24 @@ class Sidebar extends StatelessWidget { // <<< ALTERADO para StatelessWidget
   }) {
     final bool isSelected = selectedIndex == index;
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
       child: ListTile(
         leading: Icon(icon),
-        title: Text(title, style: theme.textTheme.labelLarge?.copyWith(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+        title: Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
         selected: isSelected,
-        selectedTileColor: Colors.blue.withOpacity(0.1),
-        selectedColor: Colors.blue,
-        iconColor: cs.onSurfaceVariant,
-        textColor: cs.onSurface,
+        // Cor de fundo do item selecionado usa a cor primária com opacidade.
+        selectedTileColor: colorScheme.primary.withOpacity(0.1),
+        // Cor do ícone e texto do item selecionado usa a cor primária.
+        selectedColor: colorScheme.primary,
+        // Cores dos itens não selecionados são herdadas do tema.
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onTap: () => onItemSelected(index),
       ),
